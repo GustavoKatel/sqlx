@@ -285,7 +285,7 @@ impl<'c> Executor<'c> for &'c mut PgListener {
         self.connection().fetch_optional(query)
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         query: &'q str,
         parameters: &'e [PgTypeInfo],

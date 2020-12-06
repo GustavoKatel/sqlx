@@ -62,7 +62,7 @@ fn bind(
 impl<'c> Executor<'c> for &'c mut SqliteConnection {
     type Database = Sqlite;
 
-    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_many<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<SqliteDone, SqliteRow>, Error>>
@@ -141,7 +141,7 @@ impl<'c> Executor<'c> for &'c mut SqliteConnection {
         })
     }
 
-    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_optional<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxFuture<'e, Result<Option<SqliteRow>, Error>>
@@ -201,7 +201,7 @@ impl<'c> Executor<'c> for &'c mut SqliteConnection {
         })
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         _parameters: &[SqliteTypeInfo],

@@ -333,7 +333,7 @@ impl PgConnection {
 impl<'c> Executor<'c> for &'c mut PgConnection {
     type Database = Postgres;
 
-    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_many<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<PgDone, PgRow>, Error>>
@@ -358,7 +358,7 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
-    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_optional<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxFuture<'e, Result<Option<PgRow>, Error>>
@@ -385,7 +385,7 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         parameters: &'e [PgTypeInfo],

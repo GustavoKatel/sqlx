@@ -68,7 +68,7 @@ impl MssqlConnection {
 impl<'c> Executor<'c> for &'c mut MssqlConnection {
     type Database = Mssql;
 
-    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_many<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<MssqlDone, MssqlRow>, Error>>
@@ -128,7 +128,7 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
         })
     }
 
-    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_optional<'e, 'q: 'e, 'a: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<MssqlRow>, Error>>
@@ -149,7 +149,7 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
         })
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         _parameters: &[MssqlTypeInfo],
