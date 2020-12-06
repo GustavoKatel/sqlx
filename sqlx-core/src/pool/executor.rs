@@ -15,12 +15,12 @@ where
 {
     type Database = DB;
 
-    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_many<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
         self,
         query: E,
     ) -> BoxStream<'e, Result<Either<DB::Done, DB::Row>, Error>>
     where
-        E: Execute<'q, 'a, Self::Database>,
+        E: Execute<'q, 'a, 'qa, Self::Database>,
     {
         let pool = self.clone();
 
@@ -36,12 +36,12 @@ where
         })
     }
 
-    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_optional<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<DB::Row>, Error>>
     where
-        E: Execute<'q, 'a, Self::Database>,
+        E: Execute<'q, 'a, 'qa, Self::Database>,
     {
         let pool = self.clone();
 
@@ -77,7 +77,7 @@ macro_rules! impl_executor_for_pool_connection {
             type Database = $DB;
 
             #[inline]
-            fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+            fn fetch_many<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
                 self,
                 query: E,
             ) -> futures_core::stream::BoxStream<
@@ -89,19 +89,19 @@ macro_rules! impl_executor_for_pool_connection {
             >
             where
                 'c: 'e,
-                E: crate::executor::Execute<'q, 'a, $DB>,
+                E: crate::executor::Execute<'q, 'a, 'qa, $DB>,
             {
                 (**self).fetch_many(query)
             }
 
             #[inline]
-            fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+            fn fetch_optional<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
                 self,
                 query: E,
             ) -> futures_core::future::BoxFuture<'e, Result<Option<$R>, crate::error::Error>>
             where
                 'c: 'e,
-                E: crate::executor::Execute<'q, 'a, $DB>,
+                E: crate::executor::Execute<'q, 'a, 'qa, $DB>,
             {
                 (**self).fetch_optional(query)
             }

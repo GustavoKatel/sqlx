@@ -21,7 +21,8 @@ pub struct QueryAs<'q, 'a, 'qa: 'q + 'a, DB: Database, O, A> {
     pub(crate) output: PhantomData<O>,
 }
 
-impl<'q, 'a, 'qa, DB, O: Send, A: Send> Execute<'q, 'a, 'qa, DB> for QueryAs<'q, 'a, 'qa, DB, O, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, O: Send, A: Send> Execute<'q, 'a, 'qa, DB>
+    for QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
     A: 'a + IntoArguments<'a, DB>,
@@ -47,7 +48,7 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB: Database, O>
+impl<'q, 'a, 'qa: 'q + 'a, DB: Database, O>
     QueryAs<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 {
     /// Bind a value for use with this SQL query.
@@ -61,7 +62,7 @@ impl<'q, 'a, 'qa, DB: Database, O>
 
 // FIXME: This is very close, nearly 1:1 with `Map`
 // noinspection DuplicatedCode
-impl<'q, 'a, 'qa, DB, O, A> QueryAs<'q, 'a, 'qa, DB, O, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, O, A> QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
     A: 'a + IntoArguments<'a, DB>,
@@ -71,6 +72,8 @@ where
     pub fn fetch<'e, 'c: 'e, E>(self, executor: E) -> BoxStream<'e, Result<O, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -90,7 +93,7 @@ where
     where
         'q: 'e,
         'a: 'e,
-        'qa: 'q + 'a,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -115,6 +118,8 @@ where
     pub async fn fetch_all<'e, 'c: 'e, E>(self, executor: E) -> Result<Vec<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -127,6 +132,8 @@ where
     pub async fn fetch_one<'e, 'c: 'e, E>(self, executor: E) -> Result<O, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -141,6 +148,8 @@ where
     pub async fn fetch_optional<'e, 'c: 'e, E>(self, executor: E) -> Result<Option<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -174,7 +183,7 @@ where
 /// Make a SQL query, with the given arguments, that is mapped to a concrete type
 /// using [`FromRow`].
 #[inline]
-pub fn query_as_with<'q, 'a, 'qa, DB, O, A>(
+pub fn query_as_with<'q, 'a, 'qa: 'q + 'a, DB, O, A>(
     sql: &'q str,
     arguments: A,
 ) -> QueryAs<'q, 'a, 'qa, DB, O, A>

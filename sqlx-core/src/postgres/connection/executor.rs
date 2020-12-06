@@ -333,13 +333,13 @@ impl PgConnection {
 impl<'c> Executor<'c> for &'c mut PgConnection {
     type Database = Postgres;
 
-    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_many<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<PgDone, PgRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, 'a, Self::Database>,
+        E: Execute<'q, 'a, 'qa, Self::Database>,
     {
         let sql = query.sql();
         let metadata = query.statement().map(|s| Arc::clone(&s.metadata));
@@ -358,13 +358,13 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
-    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
+    fn fetch_optional<'e, 'q: 'e, 'a: 'e, 'qa: 'q + 'a + 'e, E: 'qa>(
         self,
         mut query: E,
     ) -> BoxFuture<'e, Result<Option<PgRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, 'a, Self::Database>,
+        E: Execute<'q, 'a, 'qa, Self::Database>,
     {
         let sql = query.sql();
         let metadata = query.statement().map(|s| Arc::clone(&s.metadata));
@@ -385,7 +385,7 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         parameters: &'e [PgTypeInfo],

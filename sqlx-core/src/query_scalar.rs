@@ -20,7 +20,7 @@ pub struct QueryScalar<'q, 'a, 'qa, DB: Database, O, A> {
     inner: QueryAs<'q, 'a, 'qa, DB, (O,), A>,
 }
 
-impl<'q, 'a, 'qa, DB: Database, O: Send, A: Send> Execute<'q, 'a, DB>
+impl<'q, 'a, 'qa: 'q + 'a, DB: Database, O: Send, A: Send> Execute<'q, 'a, 'qa, DB>
     for QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
     A: 'a + IntoArguments<'a, DB>,
@@ -30,7 +30,7 @@ where
         self.inner.sql()
     }
 
-    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
+    fn statement(&self) -> Option<&'qa <DB as HasStatement<'q, 'a>>::Statement> {
         self.inner.statement()
     }
 
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB: Database, O>
+impl<'q, 'a, 'qa: 'q + 'a, DB: Database, O>
     QueryScalar<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 {
     /// Bind a value for use with this SQL query.
@@ -59,7 +59,7 @@ impl<'q, 'a, 'qa, DB: Database, O>
 
 // FIXME: This is very close, nearly 1:1 with `Map`
 // noinspection DuplicatedCode
-impl<'q, 'a, 'qa, DB, O, A> QueryScalar<'q, 'a, 'qa, DB, O, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, O, A> QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
     O: Send + Unpin,
@@ -71,6 +71,8 @@ where
     pub fn fetch<'e, 'c: 'e, E>(self, executor: E) -> BoxStream<'e, Result<O, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         A: 'e,
@@ -88,6 +90,8 @@ where
     ) -> BoxStream<'e, Result<Either<DB::Done, O>, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         A: 'e,
@@ -104,6 +108,8 @@ where
     pub async fn fetch_all<'e, 'c: 'e, E>(self, executor: E) -> Result<Vec<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         (O,): 'e,
@@ -121,6 +127,8 @@ where
     pub async fn fetch_one<'e, 'c: 'e, E>(self, executor: E) -> Result<O, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -134,6 +142,8 @@ where
     pub async fn fetch_optional<'e, 'c: 'e, E>(self, executor: E) -> Result<Option<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -177,7 +187,7 @@ where
 
 // Make a SQL query from a statement, that is mapped to a concrete value.
 pub(crate) fn query_statement_scalar<'q, 'a, 'qa, DB, O>(
-    statement: &'q <DB as HasStatement<'q, 'a>>::Statement,
+    statement: &'qa <DB as HasStatement<'q, 'a>>::Statement,
 ) -> QueryScalar<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 where
     DB: Database,

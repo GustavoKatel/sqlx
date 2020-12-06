@@ -30,12 +30,12 @@ pub struct Query<'q, 'a, 'qa: 'q + 'a, DB: Database, A> {
 /// [Query::bind] is also omitted; stylistically we recommend placing your `.bind()` calls
 /// before `.try_map()`.
 #[must_use = "query must be executed to affect database"]
-pub struct Map<'q, 'a, 'qa, DB: Database, F, A> {
+pub struct Map<'q, 'a, 'qa: 'q + 'a, DB: Database, F, A> {
     inner: Query<'q, 'a, 'qa, DB, A>,
     mapper: F,
 }
 
-impl<'q, 'a, 'qa, DB, A> Execute<'q, 'a, DB> for Query<'q, 'a, 'qa, DB, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, A> Execute<'q, 'a, 'qa, DB> for Query<'q, 'a, 'qa, DB, A>
 where
     DB: Database,
     A: Send + IntoArguments<'a, DB>,
@@ -48,7 +48,7 @@ where
         }
     }
 
-    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
+    fn statement(&self) -> Option<&'qa <DB as HasStatement<'q, 'a>>::Statement> {
         match self.statement {
             Either::Right(ref statement) => Some(&statement),
             Either::Left(_) => None,
@@ -66,7 +66,9 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB: Database> Query<'q, 'a, 'qa, DB, <DB as HasArguments<'a>>::Arguments> {
+impl<'q, 'a, 'qa: 'q + 'a, DB: Database>
+    Query<'q, 'a, 'qa, DB, <DB as HasArguments<'a>>::Arguments>
+{
     /// Bind a value for use with this SQL query.
     ///
     /// If the number of times this is called does not match the number of bind parameters that
@@ -84,7 +86,7 @@ impl<'q, 'a, 'qa, DB: Database> Query<'q, 'a, 'qa, DB, <DB as HasArguments<'a>>:
     }
 }
 
-impl<'q, 'a, 'qa, DB, A> Query<'q, 'a, 'qa, DB, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, A> Query<'q, 'a, 'qa, DB, A>
 where
     DB: Database + HasStatementCache,
 {
@@ -102,10 +104,9 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB, A: Send> Query<'q, 'a, 'qa, DB, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, A: Send> Query<'q, 'a, 'qa, DB, A>
 where
     DB: Database,
-    <DB as HasStatement<'q, 'a>>::Statement: 'qa,
     A: 'a + IntoArguments<'a, DB>,
 {
     /// Map each row in the result to another type.
@@ -143,6 +144,8 @@ where
     pub async fn execute<'e, 'c: 'e, E>(self, executor: E) -> Result<DB::Done, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -157,6 +160,8 @@ where
     ) -> BoxStream<'e, Result<DB::Done, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -168,6 +173,8 @@ where
     pub fn fetch<'e, 'c: 'e, E>(self, executor: E) -> BoxStream<'e, Result<DB::Row, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -183,6 +190,8 @@ where
     ) -> BoxStream<'e, Result<Either<DB::Done, DB::Row>, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -194,6 +203,8 @@ where
     pub async fn fetch_all<'e, 'c: 'e, E>(self, executor: E) -> Result<Vec<DB::Row>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -205,6 +216,8 @@ where
     pub async fn fetch_one<'e, 'c: 'e, E>(self, executor: E) -> Result<DB::Row, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -216,6 +229,8 @@ where
     pub async fn fetch_optional<'e, 'c: 'e, E>(self, executor: E) -> Result<Option<DB::Row>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         A: 'e,
         E: Executor<'c, Database = DB>,
     {
@@ -223,7 +238,8 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB, F: Send, A: Send> Execute<'q, 'a, DB> for Map<'q, 'a, 'qa, DB, F, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, F: Send, A: Send> Execute<'q, 'a, 'qa, DB>
+    for Map<'q, 'a, 'qa, DB, F, A>
 where
     DB: Database,
     A: IntoArguments<'a, DB>,
@@ -234,7 +250,7 @@ where
     }
 
     #[inline]
-    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
+    fn statement(&self) -> Option<&'qa <DB as HasStatement<'q, 'a>>::Statement> {
         self.inner.statement()
     }
 
@@ -249,7 +265,7 @@ where
     }
 }
 
-impl<'q, 'a, 'qa, DB, F, O, A> Map<'q, 'a, 'qa, DB, F, A>
+impl<'q, 'a, 'qa: 'q + 'a, DB, F, O, A> Map<'q, 'a, 'qa, DB, F, A>
 where
     DB: Database,
     F: TryMapRow<DB, Output = O>,
@@ -260,6 +276,8 @@ where
     pub fn fetch<'e, 'c: 'e, E>(self, executor: E) -> BoxStream<'e, Result<O, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         F: 'e,
@@ -283,6 +301,8 @@ where
     ) -> BoxStream<'e, Result<Either<DB::Done, O>, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         F: 'e,
@@ -308,6 +328,8 @@ where
     pub async fn fetch_all<'e, 'c: 'e, E>(self, executor: E) -> Result<Vec<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         F: 'e,
@@ -320,6 +342,8 @@ where
     pub async fn fetch_one<'e, 'c: 'e, E>(self, executor: E) -> Result<O, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         F: 'e,
@@ -337,6 +361,8 @@ where
     pub async fn fetch_optional<'e, 'c: 'e, E>(mut self, executor: E) -> Result<Option<O>, Error>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'e,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         F: 'e,
@@ -419,7 +445,7 @@ where
 }
 
 /// Make a SQL query.
-pub fn query<'q, 'a, 'qa, DB>(
+pub fn query<'q, 'a, 'qa: 'q + 'a, DB>(
     sql: &'q str,
 ) -> Query<'q, 'a, 'qa, DB, <DB as HasArguments<'a>>::Arguments>
 where
@@ -434,7 +460,10 @@ where
 }
 
 /// Make a SQL query, with the given arguments.
-pub fn query_with<'q, 'a, 'qa, DB, A>(sql: &'q str, arguments: A) -> Query<'q, 'a, 'qa, DB, A>
+pub fn query_with<'q, 'a, 'qa: 'q + 'a, DB, A>(
+    sql: &'q str,
+    arguments: A,
+) -> Query<'q, 'a, 'qa, DB, A>
 where
     DB: Database,
     A: IntoArguments<'a, DB>,
