@@ -31,18 +31,18 @@ impl<'r> HasValueRef<'r> for Any {
     type ValueRef = AnyValueRef<'r>;
 }
 
-impl<'q> HasStatement<'q> for Any {
+impl<'q, 'a> HasStatement<'q, 'a> for Any {
     type Database = Any;
 
     type Statement = AnyStatement<'q>;
 }
 
-impl<'q> HasArguments<'q> for Any {
+impl<'a> HasArguments<'a> for Any {
     type Database = Any;
 
-    type Arguments = AnyArguments<'q>;
+    type Arguments = AnyArguments<'a>;
 
-    type ArgumentBuffer = AnyArgumentBuffer<'q>;
+    type ArgumentBuffer = AnyArgumentBuffer<'a>;
 }
 
 // This _may_ be true, depending on the selected database

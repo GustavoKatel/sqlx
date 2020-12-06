@@ -22,7 +22,7 @@ pub(crate) struct PgStatementMetadata {
     pub(crate) parameters: Vec<PgTypeInfo>,
 }
 
-impl<'q> Statement<'q> for PgStatement<'q> {
+impl<'q, 'ai> Statement<'q, 'ai> for PgStatement<'q> {
     type Database = Postgres;
 
     fn to_owned(&self) -> PgStatement<'static> {

@@ -84,14 +84,14 @@ where
     }
 }
 
-impl<'q, DB> Encode<'q, DB> for JsonValue
+impl<'a, DB> Encode<'a, DB> for JsonValue
 where
     Self: Type<DB>,
-    for<'a> Json<&'a Self>: Encode<'q, DB>,
+    for<'j> Json<&'j Self>: Encode<'a, DB>,
     DB: Database,
 {
-    fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
-        <Json<&Self> as Encode<'q, DB>>::encode(Json(self), buf)
+    fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'a>>::ArgumentBuffer) -> IsNull {
+        <Json<&Self> as Encode<'a, DB>>::encode(Json(self), buf)
     }
 }
 

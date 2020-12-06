@@ -15,7 +15,7 @@ pub struct AnyStatement<'q> {
     pub(crate) columns: Vec<AnyColumn>,
 }
 
-impl<'q> Statement<'q> for AnyStatement<'q> {
+impl<'q, 'ai> Statement<'q, 'ai> for AnyStatement<'q> {
     type Database = Any;
 
     fn to_owned(&self) -> AnyStatement<'static> {
@@ -43,7 +43,7 @@ impl<'q> Statement<'q> for AnyStatement<'q> {
         &self.columns
     }
 
-    impl_statement_query!(AnyArguments<'_>);
+    impl_statement_query!(AnyArguments<'ai>);
 }
 
 impl<'i> ColumnIndex<AnyStatement<'_>> for &'i str

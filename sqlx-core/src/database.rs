@@ -78,8 +78,8 @@ pub trait Database:
     + Send
     + Debug
     + for<'r> HasValueRef<'r, Database = Self>
-    + for<'q> HasArguments<'q, Database = Self>
-    + for<'q> HasStatement<'q, Database = Self>
+    + for<'a> HasArguments<'a, Database = Self>
+    + for<'q, 'a> HasStatement<'q, 'a, Database = Self>
 {
     /// The concrete `Connection` implementation for this database.
     type Connection: Connection<Database = Self>;
@@ -130,11 +130,11 @@ pub trait HasValueRef<'r> {
 ///
 /// [`Database`]: trait.Database.html
 /// [Generic Associated Types]: https://github.com/rust-lang/rust/issues/44265
-pub trait HasArguments<'q> {
+pub trait HasArguments<'a> {
     type Database: Database;
 
     /// The concrete `Arguments` implementation for this database.
-    type Arguments: Arguments<'q, Database = Self::Database>;
+    type Arguments: Arguments<'a, Database = Self::Database>;
 
     /// The concrete type used as a buffer for arguments while encoding.
     type ArgumentBuffer;
@@ -149,11 +149,11 @@ pub trait HasArguments<'q> {
 ///
 /// [`Database`]: trait.Database.html
 /// [Generic Associated Types]: https://github.com/rust-lang/rust/issues/44265
-pub trait HasStatement<'q> {
+pub trait HasStatement<'q, 'a> {
     type Database: Database;
 
     /// The concrete `Statement` implementation for this database.
-    type Statement: Statement<'q, Database = Self::Database>;
+    type Statement: Statement<'q, 'a, Database = Self::Database>;
 }
 
 /// A [`Database`] that maintains a client-side cache of prepared statements.

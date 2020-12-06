@@ -20,7 +20,7 @@ pub(crate) struct MssqlStatementMetadata {
     pub(crate) column_names: HashMap<UStr, usize>,
 }
 
-impl<'q> Statement<'q> for MssqlStatement<'q> {
+impl<'q, 'ai> Statement<'q, 'ai> for MssqlStatement<'q> {
     type Database = Mssql;
 
     fn to_owned(&self) -> MssqlStatement<'static> {

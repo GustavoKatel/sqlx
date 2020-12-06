@@ -8,24 +8,24 @@ use libsqlite3_sys::SQLITE_OK;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
-pub enum SqliteArgumentValue<'q> {
+pub enum SqliteArgumentValue<'a> {
     Null,
-    Text(Cow<'q, str>),
-    Blob(Cow<'q, [u8]>),
+    Text(Cow<'a, str>),
+    Blob(Cow<'a, [u8]>),
     Double(f64),
     Int(i32),
     Int64(i64),
 }
 
 #[derive(Default)]
-pub struct SqliteArguments<'q> {
-    pub(crate) values: Vec<SqliteArgumentValue<'q>>,
+pub struct SqliteArguments<'a> {
+    pub(crate) values: Vec<SqliteArgumentValue<'a>>,
 }
 
-impl<'q> SqliteArguments<'q> {
+impl<'a> SqliteArguments<'a> {
     pub(crate) fn add<T>(&mut self, value: T)
     where
-        T: Encode<'q, Sqlite>,
+        T: Encode<'a, Sqlite>,
     {
         if let IsNull::Yes = value.encode(&mut self.values) {
             self.values.push(SqliteArgumentValue::Null);
@@ -33,7 +33,7 @@ impl<'q> SqliteArguments<'q> {
     }
 }
 
-impl<'q> Arguments<'q> for SqliteArguments<'q> {
+impl<'a> Arguments<'a> for SqliteArguments<'a> {
     type Database = Sqlite;
 
     fn reserve(&mut self, len: usize, _size_hint: usize) {
@@ -42,7 +42,7 @@ impl<'q> Arguments<'q> for SqliteArguments<'q> {
 
     fn add<T>(&mut self, value: T)
     where
-        T: Encode<'q, Self::Database>,
+        T: Encode<'a, Self::Database>,
     {
         self.add(value)
     }

@@ -16,15 +16,15 @@ use crate::types::Type;
 /// Raw SQL query with bind parameters, mapped to a concrete type using [`FromRow`].
 /// Returned from [`query_as`].
 #[must_use = "query must be executed to affect database"]
-pub struct QueryAs<'q, DB: Database, O, A> {
-    pub(crate) inner: Query<'q, DB, A>,
+pub struct QueryAs<'q, 'a, 'qa: 'q + 'a, DB: Database, O, A> {
+    pub(crate) inner: Query<'q, 'a, 'qa, DB, A>,
     pub(crate) output: PhantomData<O>,
 }
 
-impl<'q, DB, O: Send, A: Send> Execute<'q, DB> for QueryAs<'q, DB, O, A>
+impl<'q, 'a, 'qa, DB, O: Send, A: Send> Execute<'q, 'a, 'qa, DB> for QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: 'q + IntoArguments<'q, DB>,
+    A: 'a + IntoArguments<'a, DB>,
 {
     #[inline]
     fn sql(&self) -> &'q str {
@@ -32,12 +32,12 @@ where
     }
 
     #[inline]
-    fn statement(&self) -> Option<&<DB as HasStatement<'q>>::Statement> {
+    fn statement(&self) -> Option<&'qa <DB as HasStatement<'q, 'a>>::Statement> {
         self.inner.statement()
     }
 
     #[inline]
-    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'q>>::Arguments> {
+    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'a>>::Arguments> {
         self.inner.take_arguments()
     }
 
@@ -47,11 +47,13 @@ where
     }
 }
 
-impl<'q, DB: Database, O> QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments> {
+impl<'q, 'a, 'qa, DB: Database, O>
+    QueryAs<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
+{
     /// Bind a value for use with this SQL query.
     ///
     /// See [`Query::bind`](crate::query::Query::bind).
-    pub fn bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(mut self, value: T) -> Self {
+    pub fn bind<T: 'a + Send + Encode<'a, DB> + Type<DB>>(mut self, value: T) -> Self {
         self.inner = self.inner.bind(value);
         self
     }
@@ -59,10 +61,10 @@ impl<'q, DB: Database, O> QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments
 
 // FIXME: This is very close, nearly 1:1 with `Map`
 // noinspection DuplicatedCode
-impl<'q, DB, O, A> QueryAs<'q, DB, O, A>
+impl<'q, 'a, 'qa, DB, O, A> QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: 'q + IntoArguments<'q, DB>,
+    A: 'a + IntoArguments<'a, DB>,
     O: Send + Unpin + for<'r> FromRow<'r, DB::Row>,
 {
     /// Execute the query and return the generated results as a stream.
@@ -87,6 +89,8 @@ where
     ) -> BoxStream<'e, Result<Either<DB::Done, O>, Error>>
     where
         'q: 'e,
+        'a: 'e,
+        'qa: 'q + 'a,
         E: 'e + Executor<'c, Database = DB>,
         DB: 'e,
         O: 'e,
@@ -154,7 +158,9 @@ where
 /// Make a SQL query that is mapped to a concrete type
 /// using [`FromRow`].
 #[inline]
-pub fn query_as<'q, DB, O>(sql: &'q str) -> QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
+pub fn query_as<'q, 'a, 'qa, DB, O>(
+    sql: &'q str,
+) -> QueryAs<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 where
     DB: Database,
     O: for<'r> FromRow<'r, DB::Row>,
@@ -168,10 +174,13 @@ where
 /// Make a SQL query, with the given arguments, that is mapped to a concrete type
 /// using [`FromRow`].
 #[inline]
-pub fn query_as_with<'q, DB, O, A>(sql: &'q str, arguments: A) -> QueryAs<'q, DB, O, A>
+pub fn query_as_with<'q, 'a, 'qa, DB, O, A>(
+    sql: &'q str,
+    arguments: A,
+) -> QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: IntoArguments<'q, DB>,
+    A: IntoArguments<'a, DB>,
     O: for<'r> FromRow<'r, DB::Row>,
 {
     QueryAs {
@@ -181,9 +190,9 @@ where
 }
 
 // Make a SQL query from a statement, that is mapped to a concrete type.
-pub(crate) fn query_statement_as<'q, DB, O>(
-    statement: &'q <DB as HasStatement<'q>>::Statement,
-) -> QueryAs<'q, DB, O, <DB as HasArguments<'_>>::Arguments>
+pub(crate) fn query_statement_as<'q, 'a, 'qa, DB, O>(
+    statement: &'qa <DB as HasStatement<'q, 'a>>::Statement,
+) -> QueryAs<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 where
     DB: Database,
     O: for<'r> FromRow<'r, DB::Row>,
@@ -195,13 +204,13 @@ where
 }
 
 // Make a SQL query from a statement, with the given arguments, that is mapped to a concrete type.
-pub(crate) fn query_statement_as_with<'q, DB, O, A>(
-    statement: &'q <DB as HasStatement<'q>>::Statement,
+pub(crate) fn query_statement_as_with<'q, 'a, 'qa: 'a + 'q, DB, O, A>(
+    statement: &'qa <DB as HasStatement<'q, 'a>>::Statement,
     arguments: A,
-) -> QueryAs<'q, DB, O, A>
+) -> QueryAs<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: IntoArguments<'q, DB>,
+    A: IntoArguments<'a, DB>,
     O: for<'r> FromRow<'r, DB::Row>,
 {
     QueryAs {

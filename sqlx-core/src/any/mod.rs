@@ -47,7 +47,7 @@ pub type AnyPool = crate::pool::Pool<Any>;
 pub type AnyPoolOptions = crate::pool::PoolOptions<Any>;
 
 // NOTE: required due to the lack of lazy normalization
-impl_into_arguments_for_arguments!(AnyArguments<'q>);
+impl_into_arguments_for_arguments!(AnyArguments<'a>);
 impl_executor_for_pool_connection!(Any, AnyConnection, AnyRow);
 impl_executor_for_transaction!(Any, AnyRow);
 impl_acquire!(Any, AnyConnection);

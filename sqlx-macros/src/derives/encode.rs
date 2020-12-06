@@ -108,8 +108,8 @@ fn expand_derive_encode_weak_enum(
     }
 
     Ok(quote!(
-        impl<'q, DB: sqlx::Database> sqlx::encode::Encode<'q, DB> for #ident where #repr: sqlx::encode::Encode<'q, DB> {
-            fn encode_by_ref(&self, buf: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer) -> sqlx::encode::IsNull {
+        impl<'a, DB: sqlx::Database> sqlx::encode::Encode<'a, DB> for #ident where #repr: sqlx::encode::Encode<'a, DB> {
+            fn encode_by_ref(&self, buf: &mut <DB as sqlx::database::HasArguments<'a>>::ArgumentBuffer) -> sqlx::encode::IsNull {
                 let value = match self {
                     #(#values)*
                 };
@@ -151,13 +151,13 @@ fn expand_derive_encode_strong_enum(
     }
 
     Ok(quote!(
-        impl<'q, DB: sqlx::Database> sqlx::encode::Encode<'q, DB> for #ident where &'q str: sqlx::encode::Encode<'q, DB> {
-            fn encode_by_ref(&self, buf: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer) -> sqlx::encode::IsNull {
+        impl<'a, DB: sqlx::Database> sqlx::encode::Encode<'a, DB> for #ident where &'a str: sqlx::encode::Encode<'a, DB> {
+            fn encode_by_ref(&self, buf: &mut <DB as sqlx::database::HasArguments<'a>>::ArgumentBuffer) -> sqlx::encode::IsNull {
                 let val = match self {
                     #(#value_arms)*
                 };
 
-                <&str as sqlx::encode::Encode<'q, DB>>::encode(val, buf)
+                <&str as sqlx::encode::Encode<'a, DB>>::encode(val, buf)
             }
 
             fn size_hint(&self) -> usize {
@@ -165,7 +165,7 @@ fn expand_derive_encode_strong_enum(
                     #(#value_arms)*
                 };
 
-                <&str as sqlx::encode::Encode<'q, DB>>::size_hint(&val)
+                <&str as sqlx::encode::Encode<'a, DB>>::size_hint(&val)
             }
         }
     ))

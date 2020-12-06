@@ -15,12 +15,12 @@ where
 {
     type Database = DB;
 
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxStream<'e, Result<Either<DB::Done, DB::Row>, Error>>
     where
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let pool = self.clone();
 
@@ -36,23 +36,23 @@ where
         })
     }
 
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<DB::Row>, Error>>
     where
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let pool = self.clone();
 
         Box::pin(async move { pool.acquire().await?.fetch_optional(query).await })
     }
 
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         parameters: &'e [<Self::Database as Database>::TypeInfo],
-    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q>>::Statement, Error>> {
+    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q, 'a>>::Statement, Error>> {
         let pool = self.clone();
 
         Box::pin(async move { pool.acquire().await?.prepare_with(sql, parameters).await })
@@ -77,7 +77,7 @@ macro_rules! impl_executor_for_pool_connection {
             type Database = $DB;
 
             #[inline]
-            fn fetch_many<'e, 'q: 'e, E: 'q>(
+            fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
                 self,
                 query: E,
             ) -> futures_core::stream::BoxStream<
@@ -89,31 +89,34 @@ macro_rules! impl_executor_for_pool_connection {
             >
             where
                 'c: 'e,
-                E: crate::executor::Execute<'q, $DB>,
+                E: crate::executor::Execute<'q, 'a, $DB>,
             {
                 (**self).fetch_many(query)
             }
 
             #[inline]
-            fn fetch_optional<'e, 'q: 'e, E: 'q>(
+            fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
                 self,
                 query: E,
             ) -> futures_core::future::BoxFuture<'e, Result<Option<$R>, crate::error::Error>>
             where
                 'c: 'e,
-                E: crate::executor::Execute<'q, $DB>,
+                E: crate::executor::Execute<'q, 'a, $DB>,
             {
                 (**self).fetch_optional(query)
             }
 
             #[inline]
-            fn prepare_with<'e, 'q: 'e>(
+            fn prepare_with<'e, 'q: 'e, 'a: 'e>(
                 self,
                 sql: &'q str,
                 parameters: &'e [<$DB as crate::database::Database>::TypeInfo],
             ) -> futures_core::future::BoxFuture<
                 'e,
-                Result<<$DB as crate::database::HasStatement<'q>>::Statement, crate::error::Error>,
+                Result<
+                    <$DB as crate::database::HasStatement<'q, 'a>>::Statement,
+                    crate::error::Error,
+                >,
             >
             where
                 'c: 'e,

@@ -42,7 +42,7 @@ pub type SqlitePool = crate::pool::Pool<Sqlite>;
 pub type SqlitePoolOptions = crate::pool::PoolOptions<Sqlite>;
 
 // NOTE: required due to the lack of lazy normalization
-impl_into_arguments_for_arguments!(SqliteArguments<'q>);
+impl_into_arguments_for_arguments!(SqliteArguments<'a>);
 impl_executor_for_pool_connection!(Sqlite, SqliteConnection, SqliteRow);
 impl_executor_for_transaction!(Sqlite, SqliteRow);
 impl_map_row!(Sqlite, SqliteRow);

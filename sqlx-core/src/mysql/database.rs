@@ -39,7 +39,7 @@ impl HasArguments<'_> for MySql {
     type ArgumentBuffer = Vec<u8>;
 }
 
-impl<'q> HasStatement<'q> for MySql {
+impl<'q, 'a> HasStatement<'q, 'a> for MySql {
     type Database = MySql;
 
     type Statement = MySqlStatement<'q>;

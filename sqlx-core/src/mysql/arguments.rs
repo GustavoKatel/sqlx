@@ -12,9 +12,9 @@ pub struct MySqlArguments {
 }
 
 impl MySqlArguments {
-    pub(crate) fn add<'q, T>(&mut self, value: T)
+    pub(crate) fn add<'a, T>(&mut self, value: T)
     where
-        T: Encode<'q, MySql> + Type<MySql>,
+        T: Encode<'a, MySql> + Type<MySql>,
     {
         let ty = value.produces().unwrap_or_else(T::type_info);
         let index = self.types.len();
@@ -28,7 +28,7 @@ impl MySqlArguments {
     }
 }
 
-impl<'q> Arguments<'q> for MySqlArguments {
+impl<'a> Arguments<'a> for MySqlArguments {
     type Database = MySql;
 
     fn reserve(&mut self, len: usize, size: usize) {
@@ -38,7 +38,7 @@ impl<'q> Arguments<'q> for MySqlArguments {
 
     fn add<T>(&mut self, value: T)
     where
-        T: Encode<'q, Self::Database> + Type<Self::Database>,
+        T: Encode<'a, Self::Database> + Type<Self::Database>,
     {
         self.add(value)
     }

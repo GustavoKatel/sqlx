@@ -40,7 +40,7 @@ impl HasArguments<'_> for Postgres {
     type ArgumentBuffer = PgArgumentBuffer;
 }
 
-impl<'q> HasStatement<'q> for Postgres {
+impl<'q, 'a> HasStatement<'q, 'a> for Postgres {
     type Database = Postgres;
 
     type Statement = PgStatement<'q>;

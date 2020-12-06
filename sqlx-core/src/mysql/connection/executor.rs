@@ -210,13 +210,13 @@ impl MySqlConnection {
 impl<'c> Executor<'c> for &'c mut MySqlConnection {
     type Database = MySql;
 
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<MySqlDone, MySqlRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let sql = query.sql();
         let arguments = query.take_arguments();
@@ -234,13 +234,13 @@ impl<'c> Executor<'c> for &'c mut MySqlConnection {
         })
     }
 
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<MySqlRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let mut s = self.fetch_many(query);
 

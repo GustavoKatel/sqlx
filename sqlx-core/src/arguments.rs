@@ -5,7 +5,7 @@ use crate::encode::Encode;
 use crate::types::Type;
 
 /// A tuple of arguments to be sent to the database.
-pub trait Arguments<'q>: Send + Sized + Default {
+pub trait Arguments<'a>: Send + Sized + Default {
     type Database: Database;
 
     /// Reserves the capacity for at least `additional` more values (of `size` total bytes) to
@@ -15,21 +15,21 @@ pub trait Arguments<'q>: Send + Sized + Default {
     /// Add the value to the end of the arguments.
     fn add<T>(&mut self, value: T)
     where
-        T: 'q + Send + Encode<'q, Self::Database> + Type<Self::Database>;
+        T: 'a + Send + Encode<'a, Self::Database> + Type<Self::Database>;
 }
 
-pub trait IntoArguments<'q, DB: HasArguments<'q>>: Sized + Send {
-    fn into_arguments(self) -> <DB as HasArguments<'q>>::Arguments;
+pub trait IntoArguments<'a, DB: HasArguments<'a>>: Sized + Send {
+    fn into_arguments(self) -> <DB as HasArguments<'a>>::Arguments;
 }
 
 // NOTE: required due to lack of lazy normalization
 #[allow(unused_macros)]
 macro_rules! impl_into_arguments_for_arguments {
     ($Arguments:path) => {
-        impl<'q>
+        impl<'a>
             crate::arguments::IntoArguments<
-                'q,
-                <$Arguments as crate::arguments::Arguments<'q>>::Database,
+                'a,
+                <$Arguments as crate::arguments::Arguments<'a>>::Database,
             > for $Arguments
         {
             fn into_arguments(self) -> $Arguments {

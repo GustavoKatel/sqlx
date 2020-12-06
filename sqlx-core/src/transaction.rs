@@ -103,7 +103,7 @@ macro_rules! impl_executor_for_transaction {
         {
             type Database = $DB;
 
-            fn fetch_many<'e, 'q: 'e, E: 'q>(
+            fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
                 self,
                 query: E,
             ) -> futures_core::stream::BoxStream<
@@ -115,30 +115,30 @@ macro_rules! impl_executor_for_transaction {
             >
             where
                 't: 'e,
-                E: crate::executor::Execute<'q, Self::Database>,
+                E: crate::executor::Execute<'q, 'a, Self::Database>,
             {
                 (&mut **self).fetch_many(query)
             }
 
-            fn fetch_optional<'e, 'q: 'e, E: 'q>(
+            fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
                 self,
                 query: E,
             ) -> futures_core::future::BoxFuture<'e, Result<Option<$Row>, crate::error::Error>>
             where
                 't: 'e,
-                E: crate::executor::Execute<'q, Self::Database>,
+                E: crate::executor::Execute<'q, 'a, Self::Database>,
             {
                 (&mut **self).fetch_optional(query)
             }
 
-            fn prepare_with<'e, 'q: 'e>(
+            fn prepare_with<'e, 'q: 'e, 'a: 'e>(
                 self,
                 sql: &'q str,
                 parameters: &'e [<Self::Database as crate::database::Database>::TypeInfo],
             ) -> futures_core::future::BoxFuture<
                 'e,
                 Result<
-                    <Self::Database as crate::database::HasStatement<'q>>::Statement,
+                    <Self::Database as crate::database::HasStatement<'q, 'a>>::Statement,
                     crate::error::Error,
                 >,
             >

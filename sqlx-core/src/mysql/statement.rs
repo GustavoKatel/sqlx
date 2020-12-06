@@ -22,7 +22,7 @@ pub(crate) struct MySqlStatementMetadata {
     pub(crate) parameters: usize,
 }
 
-impl<'q> Statement<'q> for MySqlStatement<'q> {
+impl<'q, 'ai> Statement<'q, 'ai> for MySqlStatement<'q> {
     type Database = MySql;
 
     fn to_owned(&self) -> MySqlStatement<'static> {

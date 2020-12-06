@@ -68,13 +68,13 @@ impl MssqlConnection {
 impl<'c> Executor<'c> for &'c mut MssqlConnection {
     type Database = Mssql;
 
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<MssqlDone, MssqlRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let sql = query.sql();
         let arguments = query.take_arguments();
@@ -128,13 +128,13 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
         })
     }
 
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<MssqlRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let mut s = self.fetch_many(query);
 

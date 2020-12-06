@@ -4,11 +4,11 @@ use crate::encode::Encode;
 use crate::types::Type;
 
 #[derive(Default)]
-pub struct AnyArguments<'q> {
-    values: Vec<Box<dyn Encode<'q, Any> + Send + 'q>>,
+pub struct AnyArguments<'a> {
+    values: Vec<Box<dyn Encode<'a, Any> + Send + 'a>>,
 }
 
-impl<'q> Arguments<'q> for AnyArguments<'q> {
+impl<'a> Arguments<'a> for AnyArguments<'a> {
     type Database = Any;
 
     fn reserve(&mut self, additional: usize, _size: usize) {
@@ -17,34 +17,34 @@ impl<'q> Arguments<'q> for AnyArguments<'q> {
 
     fn add<T>(&mut self, value: T)
     where
-        T: 'q + Send + Encode<'q, Self::Database> + Type<Self::Database>,
+        T: 'a + Send + Encode<'a, Self::Database> + Type<Self::Database>,
     {
         self.values.push(Box::new(value));
     }
 }
 
-pub struct AnyArgumentBuffer<'q>(pub(crate) AnyArgumentBufferKind<'q>);
+pub struct AnyArgumentBuffer<'a>(pub(crate) AnyArgumentBufferKind<'a>);
 
-pub(crate) enum AnyArgumentBufferKind<'q> {
+pub(crate) enum AnyArgumentBufferKind<'a> {
     #[cfg(feature = "postgres")]
     Postgres(
         crate::postgres::PgArguments,
-        std::marker::PhantomData<&'q ()>,
+        std::marker::PhantomData<&'a ()>,
     ),
 
     #[cfg(feature = "mysql")]
     MySql(
         crate::mysql::MySqlArguments,
-        std::marker::PhantomData<&'q ()>,
+        std::marker::PhantomData<&'a ()>,
     ),
 
     #[cfg(feature = "sqlite")]
-    Sqlite(crate::sqlite::SqliteArguments<'q>),
+    Sqlite(crate::sqlite::SqliteArguments<'a>),
 
     #[cfg(feature = "mssql")]
     Mssql(
         crate::mssql::MssqlArguments,
-        std::marker::PhantomData<&'q ()>,
+        std::marker::PhantomData<&'a ()>,
     ),
 }
 
@@ -53,8 +53,8 @@ pub(crate) enum AnyArgumentBufferKind<'q> {
 
 #[cfg(feature = "sqlite")]
 #[allow(irrefutable_let_patterns)]
-impl<'q> From<AnyArguments<'q>> for crate::sqlite::SqliteArguments<'q> {
-    fn from(args: AnyArguments<'q>) -> Self {
+impl<'a> From<AnyArguments<'a>> for crate::sqlite::SqliteArguments<'a> {
+    fn from(args: AnyArguments<'a>) -> Self {
         let mut buf = AnyArgumentBuffer(AnyArgumentBufferKind::Sqlite(Default::default()));
 
         for value in args.values {
@@ -71,8 +71,8 @@ impl<'q> From<AnyArguments<'q>> for crate::sqlite::SqliteArguments<'q> {
 
 #[cfg(feature = "mysql")]
 #[allow(irrefutable_let_patterns)]
-impl<'q> From<AnyArguments<'q>> for crate::mysql::MySqlArguments {
-    fn from(args: AnyArguments<'q>) -> Self {
+impl<'a> From<AnyArguments<'a>> for crate::mysql::MySqlArguments {
+    fn from(args: AnyArguments<'a>) -> Self {
         let mut buf = AnyArgumentBuffer(AnyArgumentBufferKind::MySql(
             Default::default(),
             std::marker::PhantomData,
@@ -92,8 +92,8 @@ impl<'q> From<AnyArguments<'q>> for crate::mysql::MySqlArguments {
 
 #[cfg(feature = "mssql")]
 #[allow(irrefutable_let_patterns)]
-impl<'q> From<AnyArguments<'q>> for crate::mssql::MssqlArguments {
-    fn from(args: AnyArguments<'q>) -> Self {
+impl<'a> From<AnyArguments<'a>> for crate::mssql::MssqlArguments {
+    fn from(args: AnyArguments<'a>) -> Self {
         let mut buf = AnyArgumentBuffer(AnyArgumentBufferKind::Mssql(
             Default::default(),
             std::marker::PhantomData,
@@ -113,8 +113,8 @@ impl<'q> From<AnyArguments<'q>> for crate::mssql::MssqlArguments {
 
 #[cfg(feature = "postgres")]
 #[allow(irrefutable_let_patterns)]
-impl<'q> From<AnyArguments<'q>> for crate::postgres::PgArguments {
-    fn from(args: AnyArguments<'q>) -> Self {
+impl<'a> From<AnyArguments<'a>> for crate::postgres::PgArguments {
+    fn from(args: AnyArguments<'a>) -> Self {
         let mut buf = AnyArgumentBuffer(AnyArgumentBufferKind::Postgres(
             Default::default(),
             std::marker::PhantomData,

@@ -30,15 +30,15 @@ impl<'r> HasValueRef<'r> for Sqlite {
     type ValueRef = SqliteValueRef<'r>;
 }
 
-impl<'q> HasArguments<'q> for Sqlite {
+impl<'a> HasArguments<'a> for Sqlite {
     type Database = Sqlite;
 
-    type Arguments = SqliteArguments<'q>;
+    type Arguments = SqliteArguments<'a>;
 
-    type ArgumentBuffer = Vec<SqliteArgumentValue<'q>>;
+    type ArgumentBuffer = Vec<SqliteArgumentValue<'a>>;
 }
 
-impl<'q> HasStatement<'q> for Sqlite {
+impl<'q, 'a> HasStatement<'q, 'a> for Sqlite {
     type Database = Sqlite;
 
     type Statement = SqliteStatement<'q>;

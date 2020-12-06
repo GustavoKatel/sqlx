@@ -16,25 +16,26 @@ use crate::types::Type;
 /// Raw SQL query with bind parameters, mapped to a concrete type using [`FromRow`] on `(O,)`.
 /// Returned from [`query_scalar`].
 #[must_use = "query must be executed to affect database"]
-pub struct QueryScalar<'q, DB: Database, O, A> {
-    inner: QueryAs<'q, DB, (O,), A>,
+pub struct QueryScalar<'q, 'a, 'qa, DB: Database, O, A> {
+    inner: QueryAs<'q, 'a, 'qa, DB, (O,), A>,
 }
 
-impl<'q, DB: Database, O: Send, A: Send> Execute<'q, DB> for QueryScalar<'q, DB, O, A>
+impl<'q, 'a, 'qa, DB: Database, O: Send, A: Send> Execute<'q, 'a, DB>
+    for QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
-    A: 'q + IntoArguments<'q, DB>,
+    A: 'a + IntoArguments<'a, DB>,
 {
     #[inline]
     fn sql(&self) -> &'q str {
         self.inner.sql()
     }
 
-    fn statement(&self) -> Option<&<DB as HasStatement<'q>>::Statement> {
+    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
         self.inner.statement()
     }
 
     #[inline]
-    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'q>>::Arguments> {
+    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'a>>::Arguments> {
         self.inner.take_arguments()
     }
 
@@ -44,11 +45,13 @@ where
     }
 }
 
-impl<'q, DB: Database, O> QueryScalar<'q, DB, O, <DB as HasArguments<'q>>::Arguments> {
+impl<'q, 'a, 'qa, DB: Database, O>
+    QueryScalar<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
+{
     /// Bind a value for use with this SQL query.
     ///
     /// See [`Query::bind`](crate::query::Query::bind).
-    pub fn bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(mut self, value: T) -> Self {
+    pub fn bind<T: 'a + Send + Encode<'a, DB> + Type<DB>>(mut self, value: T) -> Self {
         self.inner = self.inner.bind(value);
         self
     }
@@ -56,11 +59,11 @@ impl<'q, DB: Database, O> QueryScalar<'q, DB, O, <DB as HasArguments<'q>>::Argum
 
 // FIXME: This is very close, nearly 1:1 with `Map`
 // noinspection DuplicatedCode
-impl<'q, DB, O, A> QueryScalar<'q, DB, O, A>
+impl<'q, 'a, 'qa, DB, O, A> QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
     O: Send + Unpin,
-    A: 'q + IntoArguments<'q, DB>,
+    A: 'a + IntoArguments<'a, DB>,
     (O,): Send + Unpin + for<'r> FromRow<'r, DB::Row>,
 {
     /// Execute the query and return the generated results as a stream.
@@ -143,9 +146,9 @@ where
 /// Make a SQL query that is mapped to a single concrete type
 /// using [`FromRow`].
 #[inline]
-pub fn query_scalar<'q, DB, O>(
+pub fn query_scalar<'q, 'a, 'qa, DB, O>(
     sql: &'q str,
-) -> QueryScalar<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
+) -> QueryScalar<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 where
     DB: Database,
     (O,): for<'r> FromRow<'r, DB::Row>,
@@ -158,10 +161,13 @@ where
 /// Make a SQL query, with the given arguments, that is mapped to a single concrete type
 /// using [`FromRow`].
 #[inline]
-pub fn query_scalar_with<'q, DB, O, A>(sql: &'q str, arguments: A) -> QueryScalar<'q, DB, O, A>
+pub fn query_scalar_with<'q, 'a, 'qa, DB, O, A>(
+    sql: &'q str,
+    arguments: A,
+) -> QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: IntoArguments<'q, DB>,
+    A: IntoArguments<'a, DB>,
     (O,): for<'r> FromRow<'r, DB::Row>,
 {
     QueryScalar {
@@ -170,9 +176,9 @@ where
 }
 
 // Make a SQL query from a statement, that is mapped to a concrete value.
-pub(crate) fn query_statement_scalar<'q, DB, O>(
-    statement: &'q <DB as HasStatement<'q>>::Statement,
-) -> QueryScalar<'q, DB, O, <DB as HasArguments<'_>>::Arguments>
+pub(crate) fn query_statement_scalar<'q, 'a, 'qa, DB, O>(
+    statement: &'q <DB as HasStatement<'q, 'a>>::Statement,
+) -> QueryScalar<'q, 'a, 'qa, DB, O, <DB as HasArguments<'a>>::Arguments>
 where
     DB: Database,
     (O,): for<'r> FromRow<'r, DB::Row>,
@@ -183,13 +189,13 @@ where
 }
 
 // Make a SQL query from a statement, with the given arguments, that is mapped to a concrete value.
-pub(crate) fn query_statement_scalar_with<'q, DB, O, A>(
-    statement: &'q <DB as HasStatement<'q>>::Statement,
+pub(crate) fn query_statement_scalar_with<'q, 'a, 'qa, DB, O, A>(
+    statement: &'qa <DB as HasStatement<'q, 'a>>::Statement,
     arguments: A,
-) -> QueryScalar<'q, DB, O, A>
+) -> QueryScalar<'q, 'a, 'qa, DB, O, A>
 where
     DB: Database,
-    A: IntoArguments<'q, DB>,
+    A: IntoArguments<'a, DB>,
     (O,): for<'r> FromRow<'r, DB::Row>,
 {
     QueryScalar {

@@ -263,24 +263,24 @@ impl PgListener {
 impl<'c> Executor<'c> for &'c mut PgListener {
     type Database = Postgres;
 
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxStream<'e, Result<Either<PgDone, PgRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.connection().fetch_many(query)
     }
 
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<PgRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.connection().fetch_optional(query)
     }

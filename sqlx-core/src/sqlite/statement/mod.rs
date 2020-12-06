@@ -25,7 +25,7 @@ pub struct SqliteStatement<'q> {
     pub(crate) column_names: Arc<HashMap<UStr, usize>>,
 }
 
-impl<'q> Statement<'q> for SqliteStatement<'q> {
+impl<'q, 'ai> Statement<'q, 'ai> for SqliteStatement<'q> {
     type Database = Sqlite;
 
     fn to_owned(&self) -> SqliteStatement<'static> {
@@ -49,7 +49,7 @@ impl<'q> Statement<'q> for SqliteStatement<'q> {
         &self.columns
     }
 
-    impl_statement_query!(SqliteArguments<'_>);
+    impl_statement_query!(SqliteArguments<'ai>);
 }
 
 impl ColumnIndex<SqliteStatement<'_>> for &'_ str {

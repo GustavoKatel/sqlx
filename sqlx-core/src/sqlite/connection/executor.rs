@@ -62,13 +62,13 @@ fn bind(
 impl<'c> Executor<'c> for &'c mut SqliteConnection {
     type Database = Sqlite;
 
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxStream<'e, Result<Either<SqliteDone, SqliteRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let sql = query.sql();
         let mut logger = QueryLogger::new(sql, self.log_settings.clone());
@@ -141,13 +141,13 @@ impl<'c> Executor<'c> for &'c mut SqliteConnection {
         })
     }
 
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         mut query: E,
     ) -> BoxFuture<'e, Result<Option<SqliteRow>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         let sql = query.sql();
         let mut logger = QueryLogger::new(sql, self.log_settings.clone());

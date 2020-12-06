@@ -26,25 +26,25 @@ pub trait Executor<'c>: Send + Debug + Sized {
     type Database: Database;
 
     /// Execute the query and return the total number of rows affected.
-    fn execute<'e, 'q: 'e, E: 'q>(
+    fn execute<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<<Self::Database as Database>::Done, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.execute_many(query).try_collect().boxed()
     }
 
     /// Execute multiple queries and return the rows affected from each query, in a stream.
-    fn execute_many<'e, 'q: 'e, E: 'q>(
+    fn execute_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxStream<'e, Result<<Self::Database as Database>::Done, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.fetch_many(query)
             .try_filter_map(|step| async move {
@@ -57,13 +57,13 @@ pub trait Executor<'c>: Send + Debug + Sized {
     }
 
     /// Execute the query and return the generated results as a stream.
-    fn fetch<'e, 'q: 'e, E: 'q>(
+    fn fetch<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxStream<'e, Result<<Self::Database as Database>::Row, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.fetch_many(query)
             .try_filter_map(|step| async move {
@@ -77,7 +77,7 @@ pub trait Executor<'c>: Send + Debug + Sized {
 
     /// Execute multiple queries and return the generated results as a stream
     /// from each query, in a stream.
-    fn fetch_many<'e, 'q: 'e, E: 'q>(
+    fn fetch_many<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxStream<
@@ -89,28 +89,28 @@ pub trait Executor<'c>: Send + Debug + Sized {
     >
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>;
+        E: Execute<'q, 'a, Self::Database>;
 
     /// Execute the query and return all the generated results, collected into a [`Vec`].
-    fn fetch_all<'e, 'q: 'e, E: 'q>(
+    fn fetch_all<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Vec<<Self::Database as Database>::Row>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.fetch(query).try_collect().boxed()
     }
 
     /// Execute the query and returns exactly one row.
-    fn fetch_one<'e, 'q: 'e, E: 'q>(
+    fn fetch_one<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<<Self::Database as Database>::Row, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>,
+        E: Execute<'q, 'a, Self::Database>,
     {
         self.fetch_optional(query)
             .and_then(|row| match row {
@@ -121,13 +121,13 @@ pub trait Executor<'c>: Send + Debug + Sized {
     }
 
     /// Execute the query and returns at most one row.
-    fn fetch_optional<'e, 'q: 'e, E: 'q>(
+    fn fetch_optional<'e, 'a: 'e, 'q: 'e, E: 'q + 'a>(
         self,
         query: E,
     ) -> BoxFuture<'e, Result<Option<<Self::Database as Database>::Row>, Error>>
     where
         'c: 'e,
-        E: Execute<'q, Self::Database>;
+        E: Execute<'q, 'a, Self::Database>;
 
     /// Prepare the SQL query to inspect the type information of its parameters
     /// and results.
@@ -138,10 +138,10 @@ pub trait Executor<'c>: Send + Debug + Sized {
     /// This explicit API is provided to allow access to the statement metadata available after
     /// it prepared but before the first row is returned.
     #[inline]
-    fn prepare<'e, 'q: 'e>(
+    fn prepare<'e, 'q: 'e, 'a: 'e>(
         self,
         query: &'q str,
-    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q>>::Statement, Error>>
+    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q, 'a>>::Statement, Error>>
     where
         'c: 'e,
     {
@@ -153,11 +153,11 @@ pub trait Executor<'c>: Send + Debug + Sized {
     ///
     /// Only some database drivers (PostgreSQL, MSSQL) can take advantage of
     /// this extra information to influence parameter type inference.
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e, 'q: 'e, 'a: 'e>(
         self,
         sql: &'q str,
         parameters: &'e [<Self::Database as Database>::TypeInfo],
-    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q>>::Statement, Error>>
+    ) -> BoxFuture<'e, Result<<Self::Database as HasStatement<'q, 'a>>::Statement, Error>>
     where
         'c: 'e;
 
@@ -182,19 +182,19 @@ pub trait Executor<'c>: Send + Debug + Sized {
 ///  * [`&str`](std::str)
 ///  * [`Query`](super::query::Query)
 ///
-pub trait Execute<'q, DB: Database>: Send + Sized {
+pub trait Execute<'q, 'a, DB: Database>: Send + Sized {
     /// Gets the SQL that will be executed.
     fn sql(&self) -> &'q str;
 
     /// Gets the previously cached statement, if available.
-    fn statement(&self) -> Option<&<DB as HasStatement<'q>>::Statement>;
+    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement>;
 
     /// Returns the arguments to be bound against the query string.
     ///
     /// Returning `None` for `Arguments` indicates to use a "simple" query protocol and to not
     /// prepare the query. Returning `Some(Default::default())` is an empty arguments object that
     /// will be prepared (and cached) before execution.
-    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'q>>::Arguments>;
+    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'a>>::Arguments>;
 
     /// Returns `true` if the statement should be cached.
     fn persistent(&self) -> bool;
@@ -202,19 +202,19 @@ pub trait Execute<'q, DB: Database>: Send + Sized {
 
 // NOTE: `Execute` is explicitly not implemented for String and &String to make it slightly more
 //       involved to write `conn.execute(format!("SELECT {}", val))`
-impl<'q, DB: Database> Execute<'q, DB> for &'q str {
+impl<'q, 'a, DB: Database> Execute<'q, 'a, DB> for &'q str {
     #[inline]
     fn sql(&self) -> &'q str {
         self
     }
 
     #[inline]
-    fn statement(&self) -> Option<&<DB as HasStatement<'q>>::Statement> {
+    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
         None
     }
 
     #[inline]
-    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'q>>::Arguments> {
+    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'a>>::Arguments> {
         None
     }
 
@@ -224,19 +224,21 @@ impl<'q, DB: Database> Execute<'q, DB> for &'q str {
     }
 }
 
-impl<'q, DB: Database> Execute<'q, DB> for (&'q str, Option<<DB as HasArguments<'q>>::Arguments>) {
+impl<'q, 'a, DB: Database> Execute<'q, 'a, DB>
+    for (&'q str, Option<<DB as HasArguments<'a>>::Arguments>)
+{
     #[inline]
     fn sql(&self) -> &'q str {
         self.0
     }
 
     #[inline]
-    fn statement(&self) -> Option<&<DB as HasStatement<'q>>::Statement> {
+    fn statement(&self) -> Option<&<DB as HasStatement<'q, 'a>>::Statement> {
         None
     }
 
     #[inline]
-    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'q>>::Arguments> {
+    fn take_arguments(&mut self) -> Option<<DB as HasArguments<'a>>::Arguments> {
         self.1.take()
     }
 
